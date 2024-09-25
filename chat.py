@@ -1,7 +1,7 @@
 from openai import BadRequestError, OpenAI, RateLimitError
 import os
 import openai
-os.environ['OPENAI_API_KEY'] = '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'
+os.environ['OPENAI_API_KEY'] = ''
 
 def get_embedding(text):
     response = openai.Embedding.create(input=[text], model="text-embedding-ada-002")

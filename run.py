@@ -4,11 +4,11 @@ sys.path.append('scripts')
 from scripts.search import *
 from scripts.harvester import *
 import urllib3
-# urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from openai import BadRequestError, OpenAI, RateLimitError
 import os
 import openai
-# os.environ['OPENAI_API_KEY'] = ''
+os.environ['OPENAI_API_KEY'] = ''
 from openai import OpenAI
 client = OpenAI()
 
