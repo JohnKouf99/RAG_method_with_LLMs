@@ -5,7 +5,7 @@ import time
 
 #function to create text embeddings
 
-os.environ['OPENAI_API_KEY'] = ''
+
 client = OpenAI()
 
 def create_text_embeddings(df, positions ,cols):
