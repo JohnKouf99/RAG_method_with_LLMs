@@ -24,14 +24,19 @@ class run:
 
         #scan the web for urls containing knowledge
         my_searcher = GoogleSearch('https://www.google.com')
-        url_list = my_searcher.google_search(self.query, 5)
+        url_list = my_searcher.google_search(self.query, self.n + 3)
 
         #harvest the exterlan urls using a harvester instance
-        my_harvester = Harvester(list(url_list)[:3], self.query, timeout=1000, claim_id=0)
+        my_harvester = Harvester(list(url_list), self.query, timeout=1000, claim_id=0, max_sources=3)
         df = my_harvester.run()
 
         #get the bodies of the top-n web sources that has the biggest "most_similar_par_cos" value
-        result = df.nlargest(self.n, 'most_similar_par_cos')['body'] 
+        try:
+            result = df.nlargest(self.n, 'body_similarity')['body'] 
+        except Exception as e:
+            print('Could not find relevant sources.')
+            return None
+            
         
         return result
     
@@ -40,22 +45,52 @@ class run:
         return response["data"][0]["embedding"]
     
     def prompt_model(self):
-        info = "\n\n".join(self.retrieve_knowledge())
-        completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-        {"role": "system", "content": f"""
-         You are a proffesional suspicious fact-checker that speaks Greek. 
-         Your job is to classify claims as true, false, partially true or partially false.
-         """},
-        {
-            "role": "user",
-            "content": f""" Βάσει των παρακάτω πληροφοριών: {info}
-            Πάρε τον χρόνο να σκεφτείς την παρακάτω δήλωση: '{self.query}' 
-            Δικαιολόγησε την απάντησή σου"""
-        }
-    ]
-)
-        print(completion.choices[0].message.content)
+        external_souces = self.retrieve_knowledge()
+        if(external_souces is not None):
+            info = "\n\n".join(self.retrieve_knowledge())
+            print('\n')
+            print('------------------External knowledge----------------------')
+            print(info)
+            print(print('----------------------------------------'))
+            completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+            {"role": "system", "content": f"""
+            You are a proffesional suspicious fact-checker that speaks Greek. 
+            Your job is to classify claims as true, false, half-true or half false.
+            Justify your classification
+            """},
+            {
+                "role": "user",
+                "content": f""" Βάσει των παρακάτω πληροφοριών: {info}
+                Πάρε μία βαθιά ανάσα και έλενξε παρακάτω δήλωση: '{self.query}' 
+                Δικαιολόγησε την απάντησή σου"""
+            }
+        ]
+    )
+            print(completion.choices[0].message.content)
+
+        else: 
+            print('Prompting the model without any external sources.....')
+            print('\n\n')
+            completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+            {"role": "system", "content": f"""
+            You are a proffesional suspicious fact-checker that speaks Greek. 
+            Your job is to classify claims as true, false, half-true or half false.
+            Justify your classification
+            """},
+            {
+                "role": "user",
+                "content": f"""Πάρε μία βαθιά ανάσα και έλενξε παρακάτω δήλωση: '{self.query}' 
+                Δικαιολόγησε την απάντησή σου"""
+            }
+        ]
+    )
+            print(completion.choices[0].message.content)
+
+
+        
 
     

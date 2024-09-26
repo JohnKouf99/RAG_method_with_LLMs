@@ -24,11 +24,12 @@ import time
 class Harvester:
 
 
-    def __init__(self, url_list, claim, timeout, claim_id):
+    def __init__(self, url_list, claim, timeout, claim_id, max_sources):
         self.timeout = timeout
         self.url_list = url_list
         self.claim = claim
         self.claim_id = claim_id
+        self.max_sources = max_sources
         self.timeout_seconds = 20 * 60
         
 
@@ -85,11 +86,11 @@ class Harvester:
     #     filtered_arr = [text for text in texts if len(text) > 1 and len(text.split()) > 3]
     #     return " ".join(filtered_arr)
 
-    def get_body(self, soup):
+    def get_body(self, soup, claim):
     
-        #[s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title', 'footer'])]
-        [s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title', 
-                             'footer', 'nav', 'aside', 'header', 'form', 'img', 'blockquote', 'meta'])]
+        [s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title', 'footer'])]
+        #[s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title', 
+        #                     'footer', 'nav', 'aside', 'header', 'form', 'img', 'blockquote', 'meta'])]
     
         body_text =  soup.get_text(separator ='\n', strip=True)
 
@@ -97,7 +98,23 @@ class Harvester:
         
         result = "\n".join(text.strip() for text in texts if len(text.split())>3)  #.replace("\n", " ")
 
-        return result
+       
+
+        if texts is not None:
+            try:
+                #get the most similar body
+                claim_emb = single_text_embedding(claim)
+                body_emb = single_text_embedding(result)
+                dot_product = np.dot(claim_emb, body_emb)
+            except Exception as e:
+                print(f'Input is too large. Skipping this web source....')
+                return None, None
+                
+
+        else:
+            dot_product = None
+
+        return result, dot_product
 
     def similary_text(self,claim, texts):
         claim_emb = single_text_embedding(claim)
@@ -145,7 +162,7 @@ class Harvester:
         
 
 
-        df = pd.DataFrame(columns=['id','claim_id', 'title', 'body', 'most_similar_paragraph', 
+        df = pd.DataFrame(columns=['id','claim_id', 'title', 'body','body_similarity', 'most_similar_paragraph', 
                                    'harvest_date', 'url', 'most_similar_par_cos','most_similar_sent_cos'])
 
         for url in self.url_list: #na valw orio claims
@@ -162,14 +179,15 @@ class Harvester:
                 print('No title found')
                 print('skipping procedure....')
                 continue
-            body = self.get_body(html)
-            if(len(body)>300000):
-                print('Web page is too long')
+            body, body_dot = self.get_body(html, claim=self.claim)
+
+            if((body is None or len(body.split())<50)):
+                print('body is none')
                 print('skipping procedure....')
                 continue
-
-            if((len(body.split())<50) or body is None):
-                print('body is none')
+            
+            if(len(body)>300000):
+                print('Web page is too long')
                 print('skipping procedure....')
                 continue
 
@@ -184,19 +202,20 @@ class Harvester:
 
                 
            
-            data = {'id': len(df),'claim_id': self.claim_id, 'title': title, 'body': body.replace("\n", " "), 
+            data = {'id': len(df),'claim_id': self.claim_id, 'title': title, 'body': body.replace("\n", " "), 'body_similarity' : body_dot,
                   'most_similar_paragraph': result_p.replace('\xa0','') if result_p is not None else '', 
                     'harvest_date': datetime.date.today() , 'url': url, 'most_similar_par_cos': similarity_p}
 
             df.loc[len(df)] = data
 
-            if(len(df)>=5):
+            if(len(df)>=self.max_sources):
                 break
 
             
             print()
             print(f'''Most similar paragraph: {result_p}
 Cosine similarity: {similarity_p}
+Body similarity: {body_dot}
                   ''')
 
 
