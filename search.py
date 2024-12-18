@@ -26,7 +26,7 @@ chrome_options.add_argument("--window-size=1920x1080")  # Set the window size (o
 
 
 sites_source = ["www.ellinikahoaxes.gr","factcheckgreek.afp.com","www.check4facts.gr",
-                "factcheckcyprus.org",'www.youtube.com','www.linkedin.com']
+                "factcheckcyprus.org",'www.youtube.com','www.linkedin.com', "m.facebook.com"]
 doc_extensions = ["doc", "docx", 'php', 'pdf', 'txt', 'theFile', 'file', 'xls']
 
 class GoogleSearch:
@@ -59,7 +59,7 @@ class GoogleSearch:
             
         
       
-        # search_results = self.driver.find_element(By.CSS_SELECTOR,'.tF2Cxc')
+        
         
         while(len(urls)<total_num):
 
@@ -124,7 +124,7 @@ class GoogleSearch:
             
             #if we still havent found the desired url number, scroll down on the driver           
             if(len(urls)<total_num):
-                print('Scrolling down...', len(urls))
+                print('Scrolling down...')
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 new_height = self.driver.execute_script("return document.body.scrollHeight")
                 #if we reach the end of the page, harvest the rest of the urls
@@ -141,7 +141,7 @@ class GoogleSearch:
 
             #if even after the end of the page the total number of urls is not met, 
             if max_iter>1:   
-                print('reducing the number of claims......')
+                print('reducing the number of urls......')
                 total_num = total_num -1
                 #break
                 
@@ -152,16 +152,13 @@ class GoogleSearch:
 
 
 
-        # for url in urls:
-        #     print(url)
+   
 
         self.driver.quit()
 
         
-        # print(len(urls))
-        # for url in urls:
-        #     print(url)
-        return self.remove_duplicate_urls(urls)
+ 
+        return self.remove_duplicate_urls(urls)[:total_num]
 
             
 
@@ -181,8 +178,7 @@ class GoogleSearch:
                 cleaned_urls.append(url)
 
 
-        for url in cleaned_urls:
-            print(url)
+
         return cleaned_urls
 
 
